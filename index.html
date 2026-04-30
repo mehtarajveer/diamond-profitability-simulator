@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diamond Order Profitability Simulator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #222222;
+    --border: #2e2e2e;
+    --border2: #3a3a3a;
+    --text: #f0ede8;
+    --muted: #888;
+    --accent: #c8a96e;
+    --accent-dim: #7a6440;
+    --green: #4caf7d;
+    --green-bg: #0d2318;
+    --yellow: #d4a843;
+    --yellow-bg: #211a08;
+    --red: #e05555;
+    --red-bg: #1f0d0d;
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font-body: 'DM Sans', system-ui, sans-serif;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap');
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 2rem 2.5rem 1.5rem;
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+  }
+
+  header h1 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.01em;
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--muted);
+    padding-bottom: 3px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 80px);
+  }
+
+  .inputs-col {
+    border-right: 1px solid var(--border);
+    padding: 2rem 2rem 2rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  .input-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 12px;
+  }
+
+  .input-row:last-child { margin-bottom: 0; }
+
+  label {
+    font-size: 12px;
+    color: #aaa;
+    letter-spacing: 0.02em;
+  }
+
+  .input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .input-prefix {
+    position: absolute;
+    left: 10px;
+    font-size: 13px;
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  .input-suffix {
+    position: absolute;
+    right: 10px;
+    font-size: 13px;
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  input[type=number] {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    padding: 8px 32px 8px 26px;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.15s;
+    -moz-appearance: textfield;
+  }
+
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  input[type=number]:focus {
+    border-color: var(--accent-dim);
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0.5rem 0;
+  }
+
+  .results-col {
+    padding: 2rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .flag-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-radius: 8px;
+    border: 1px solid;
+    transition: all 0.3s;
+  }
+
+  .flag-bar.green { background: var(--green-bg); border-color: #1e4d35; }
+  .flag-bar.yellow { background: var(--yellow-bg); border-color: #4a3a10; }
+  .flag-bar.red { background: var(--red-bg); border-color: #4a1f1f; }
+
+  .flag-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .flag-bar.green .flag-dot { background: var(--green); }
+  .flag-bar.yellow .flag-dot { background: var(--yellow); }
+  .flag-bar.red .flag-dot { background: var(--red); }
+
+  .flag-text {
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .flag-bar.green .flag-text { color: var(--green); }
+  .flag-bar.yellow .flag-text { color: var(--yellow); }
+  .flag-bar.red .flag-text { color: var(--red); }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .metric {
+    background: var(--surface);
+    padding: 16px 18px;
+  }
+
+  .metric-label {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .metric-value {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.1;
+  }
+
+  .metric-value.pos { color: var(--green); }
+  .metric-value.neg { color: var(--red); }
+  .metric-value.accent { color: var(--accent); }
+
+  .polished-note {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 10px 14px;
+    background: var(--surface);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+
+  .polished-note span { color: var(--text); font-weight: 500; }
+
+  .section-box {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .section-box-header {
+    padding: 10px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th {
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  td {
+    padding: 10px 16px;
+    font-size: 13px;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  td.scenario { color: #aaa; font-size: 12px; }
+  td.profit-pos { color: var(--green); font-weight: 500; }
+  td.profit-neg { color: var(--red); font-weight: 500; }
+  td.margin-good { color: var(--green); }
+  td.margin-mid { color: var(--yellow); }
+  td.margin-bad { color: var(--red); }
+
+  .summary-box {
+    padding: 16px 18px;
+    background: var(--surface);
+    font-size: 13px;
+    line-height: 1.8;
+    color: #bbb;
+  }
+
+  .summary-box strong { color: var(--accent); font-weight: 500; }
+
+  .cost-breakdown {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .cost-item {
+    background: var(--surface);
+    padding: 10px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .cost-item-label { font-size: 12px; color: var(--muted); }
+  .cost-item-value { font-size: 13px; color: var(--text); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Diamond Order Profitability Simulator</h1>
+  <p>Manufacturing economics calculator</p>
+</header>
+
+<div class="layout">
+  <div class="inputs-col">
+    <div>
+      <p class="section-label">Rough Stone</p>
+      <div class="input-row">
+        <label>Rough cost per carat</label>
+        <div class="input-wrap">
+          <span class="input-prefix">$</span>
+          <input type="number" id="roughCost" value="500" step="10">
+        </div>
+      </div>
+      <div class="input-row">
+        <label>Rough carats purchased</label>
+        <div class="input-wrap">
+          <input type="number" id="roughCarats" value="10" step="0.5" style="padding-left:12px">
+          <span class="input-suffix">ct</span>
+        </div>
+      </div>
+      <div class="input-row">
+        <label>Expected yield</label>
+        <div class="input-wrap">
+          <input type="number" id="yield" value="40" step="1" min="0" max="100" style="padding-left:12px">
+          <span class="input-suffix">%</span>
+        </div>
+      </div>
+      <div class="input-row">
+        <label>Rejection rate</label>
+        <div class="input-wrap">
+          <input type="number" id="rejection" value="5" step="1" min="0" max="100" style="padding-left:12px">
+          <span class="input-suffix">%</span>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div>
+      <p class="section-label">Costs</p>
+      <div class="input-row">
+        <label>Labor / processing per rough carat</label>
+        <div class="input-wrap">
+          <span class="input-prefix">$</span>
+          <input type="number" id="laborCost" value="150" step="10">
+        </div>
+      </div>
+      <div class="input-row">
+        <label>Overhead (% of rough + labor)</label>
+        <div class="input-wrap">
+          <input type="number" id="overhead" value="12" step="1" min="0" style="padding-left:12px">
+          <span class="input-suffix">%</span>
+        </div>
+      </div>
+      <div class="input-row">
+        <label>Shipping &amp; insurance (fixed)</label>
+        <div class="input-wrap">
+          <span class="input-prefix">$</span>
+          <input type="number" id="shipping" value="500" step="50">
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div>
+      <p class="section-label">Revenue</p>
+      <div class="input-row">
+        <label>Selling price per polished carat</label>
+        <div class="input-wrap">
+          <span class="input-prefix">$</span>
+          <input type="number" id="sellPrice" value="3000" step="50">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="results-col">
+    <div id="flagBar" class="flag-bar green">
+      <div class="flag-dot"></div>
+      <span class="flag-text" id="flagText">Healthy margin</span>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric">
+        <div class="metric-label">Revenue</div>
+        <div class="metric-value accent" id="revenue">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Total Cost</div>
+        <div class="metric-value" id="totalCost">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Profit</div>
+        <div class="metric-value" id="profit">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Margin</div>
+        <div class="metric-value" id="margin">—</div>
+      </div>
+    </div>
+
+    <div class="polished-note">
+      Polished carats produced: <span id="polishedCarats">—</span>
+    </div>
+
+    <div class="section-box">
+      <div class="section-box-header">Cost Breakdown</div>
+      <div class="cost-breakdown">
+        <div class="cost-item"><span class="cost-item-label">Rough stone cost</span><span class="cost-item-value" id="cb-rough">—</span></div>
+        <div class="cost-item"><span class="cost-item-label">Labor cost</span><span class="cost-item-value" id="cb-labor">—</span></div>
+        <div class="cost-item"><span class="cost-item-label">Overhead cost</span><span class="cost-item-value" id="cb-overhead">—</span></div>
+        <div class="cost-item"><span class="cost-item-label">Shipping &amp; insurance</span><span class="cost-item-value" id="cb-shipping">—</span></div>
+      </div>
+    </div>
+
+    <div class="section-box">
+      <div class="section-box-header">Sensitivity Analysis</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            <th>Profit</th>
+            <th>Margin</th>
+            <th>Change</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="scenario">Yield drops 3%</td>
+            <td id="s1p">—</td>
+            <td id="s1m">—</td>
+            <td id="s1d">—</td>
+          </tr>
+          <tr>
+            <td class="scenario">Rough cost +5%</td>
+            <td id="s2p">—</td>
+            <td id="s2m">—</td>
+            <td id="s2d">—</td>
+          </tr>
+          <tr>
+            <td class="scenario">Sell price −5%</td>
+            <td id="s3p">—</td>
+            <td id="s3m">—</td>
+            <td id="s3d">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-box">
+      <div class="section-box-header">Deal Assessment</div>
+      <div class="summary-box" id="summary">Enter your inputs to generate a deal assessment.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ids = ['roughCost','roughCarats','yield','sellPrice','laborCost','rejection','overhead','shipping'];
+ids.forEach(id => document.getElementById(id).addEventListener('input', calc));
+
+function fmt(n) {
+  return '$' + Math.round(n).toLocaleString('en-US');
+}
+function fmtPct(n) {
+  return n.toFixed(1) + '%';
+}
+
+function compute(rc, rct, yld, sp, lc, rej, oh, ship) {
+  const polished = rct * (yld / 100) * (1 - rej / 100);
+  const revenue = polished * sp;
+  const roughTotal = rct * rc;
+  const laborTotal = rct * lc;
+  const overheadTotal = (oh / 100) * (roughTotal + laborTotal);
+  const totalCost = roughTotal + laborTotal + overheadTotal + ship;
+  const profit = revenue - totalCost;
+  const marginPct = revenue > 0 ? (profit / revenue) * 100 : 0;
+  return { polished, revenue, roughTotal, laborTotal, overheadTotal, totalCost, profit, marginPct };
+}
+
+function setClass(el, val) {
+  el.classList.remove('pos','neg','accent');
+  if (val > 0) el.classList.add('pos');
+  else if (val < 0) el.classList.add('neg');
+}
+
+function setSensRow(pid, mid, did, res, base) {
+  const pe = document.getElementById(pid);
+  const me = document.getElementById(mid);
+  const de = document.getElementById(did);
+  pe.textContent = fmt(res.profit);
+  me.textContent = fmtPct(res.marginPct);
+  const delta = res.profit - base;
+  de.textContent = (delta >= 0 ? '+' : '') + fmt(delta);
+  pe.className = res.profit >= 0 ? 'profit-pos' : 'profit-neg';
+  me.className = res.marginPct > 15 ? 'margin-good' : res.marginPct >= 5 ? 'margin-mid' : 'margin-bad';
+  de.className = delta >= 0 ? 'profit-pos' : 'profit-neg';
+}
+
+function calc() {
+  const rc = +document.getElementById('roughCost').value || 0;
+  const rct = +document.getElementById('roughCarats').value || 0;
+  const yld = +document.getElementById('yield').value || 0;
+  const sp = +document.getElementById('sellPrice').value || 0;
+  const lc = +document.getElementById('laborCost').value || 0;
+  const rej = +document.getElementById('rejection').value || 0;
+  const oh = +document.getElementById('overhead').value || 0;
+  const ship = +document.getElementById('shipping').value || 0;
+
+  const b = compute(rc, rct, yld, sp, lc, rej, oh, ship);
+
+  document.getElementById('polishedCarats').textContent = b.polished.toFixed(2) + ' ct';
+  document.getElementById('revenue').textContent = fmt(b.revenue);
+  document.getElementById('totalCost').textContent = fmt(b.totalCost);
+
+  const profEl = document.getElementById('profit');
+  profEl.textContent = fmt(b.profit);
+  profEl.className = 'metric-value ' + (b.profit >= 0 ? 'pos' : 'neg');
+
+  const marginEl = document.getElementById('margin');
+  marginEl.textContent = fmtPct(b.marginPct);
+  marginEl.className = 'metric-value ' + (b.marginPct > 15 ? 'pos' : b.marginPct >= 5 ? '' : 'neg');
+
+  document.getElementById('cb-rough').textContent = fmt(b.roughTotal);
+  document.getElementById('cb-labor').textContent = fmt(b.laborTotal);
+  document.getElementById('cb-overhead').textContent = fmt(b.overheadTotal);
+  document.getElementById('cb-shipping').textContent = fmt(ship);
+
+  const flagBar = document.getElementById('flagBar');
+  const flagText = document.getElementById('flagText');
+  flagBar.className = 'flag-bar';
+  if (b.marginPct > 15) {
+    flagBar.classList.add('green');
+    flagText.textContent = 'Healthy margin — above 15%';
+  } else if (b.marginPct >= 5) {
+    flagBar.classList.add('yellow');
+    flagText.textContent = 'Thin margin — between 5% and 15%';
+  } else {
+    flagBar.classList.add('red');
+    flagText.textContent = 'At risk — margin below 5%';
+  }
+
+  const s1 = compute(rc, rct, Math.max(0, yld - 3), sp, lc, rej, oh, ship);
+  const s2 = compute(rc * 1.05, rct, yld, sp, lc, rej, oh, ship);
+  const s3 = compute(rc, rct, yld, sp * 0.95, lc, rej, oh, ship);
+
+  setSensRow('s1p','s1m','s1d', s1, b.profit);
+  setSensRow('s2p','s2m','s2d', s2, b.profit);
+  setSensRow('s3p','s3m','s3d', s3, b.profit);
+
+  const risks = [
+    { label: 'yield dropping 3%', delta: b.profit - s1.profit },
+    { label: 'rough cost rising 5%', delta: b.profit - s2.profit },
+    { label: 'selling price falling 5%', delta: b.profit - s3.profit },
+  ].sort((a, z) => z.delta - a.delta);
+
+  const roughPct = b.totalCost > 0 ? (b.roughTotal / b.totalCost * 100).toFixed(0) : 0;
+  const dealWord = b.marginPct > 15 ? 'attractive' : b.marginPct >= 5 ? 'marginal' : 'unattractive';
+  const outlook = b.marginPct < 5
+    ? 'At current inputs, this deal does not cover costs adequately — renegotiate pricing or reduce rough cost before proceeding.'
+    : b.marginPct < 15
+    ? 'The margin buffer is thin. Any adverse movement in yield or pricing could push this deal into a loss.'
+    : 'The deal carries a solid margin buffer and can absorb moderate adverse scenarios.';
+
+  document.getElementById('summary').innerHTML =
+    `This order appears <strong>${dealWord}</strong> at a <strong>${fmtPct(b.marginPct)}</strong> margin on <strong>${fmt(b.revenue)}</strong> in revenue. ` +
+    `Rough stone cost represents <strong>${roughPct}%</strong> of total cost. ` +
+    `The biggest risk driver is <strong>${risks[0].label}</strong>, which would reduce profit by <strong>${fmt(risks[0].delta)}</strong> under stress. ` +
+    outlook;
+}
+
+calc();
+</script>
+</body>
+</html>
